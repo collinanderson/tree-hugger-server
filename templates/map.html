@@ -73,7 +73,14 @@ if(!document.cookie.match('csrftoken=[a-zA-Z0-9]{32}')) {
             uploadButton.accept = 'image/*'
             infowindow.setContent(uploadButton)
             uploadButton.onchange = function(){
-                alert('thanks (maybe this will do something someday)!')
+            var r = new XMLHttpRequest()
+                r.open('POST', '/upload/' + marker.id + '/', true);
+                r.setRequestHeader('X-CSRFToken', document.cookie.match('csrftoken=([a-zA-Z0-9]{32})')[1])
+                r.send(this.files[0])
+                r.onload = function(){
+                    alert('it worked! (i promise)')
+                }
+                this.value = ''
             }
         })
       }
