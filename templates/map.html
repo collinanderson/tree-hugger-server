@@ -37,7 +37,7 @@ if(!document.cookie.match('csrftoken=[a-zA-Z0-9]{32}')) {
             trees = JSON.parse(d.responseText).objects
             trees.forEach(function(tree){
                 var marker = new google.maps.Marker({position: {lat: tree.latitude, lng: tree.longitude}, map: map})
-                marker.id = tree.id
+                marker.data = tree
                 addinfowindow(marker)
             })
         }
@@ -54,6 +54,7 @@ if(!document.cookie.match('csrftoken=[a-zA-Z0-9]{32}')) {
             r.onload = function(){
                 var url = r.getResponseHeader('Location')
                 var marker = new google.maps.Marker({position: loc, map: map})
+                // TODO: request get the data from the url and assign it to marker.data (before calling addinfowindow())
                 marker.id = url.split('/')[url.split('/').length - 1]
                 addinfowindow(marker)
             }
@@ -66,19 +67,37 @@ if(!document.cookie.match('csrftoken=[a-zA-Z0-9]{32}')) {
         google.maps.event.addListener(marker, 'click', function(e) {
             var infowindow = new google.maps.InfoWindow();
             infowindow.open(marker.map, marker)
+            infoDiv = document.createElement('div')
+            infowindow.setContent(infoDiv)
+            marker.data.images.forEach(function(data){
+                var img  = document.createElement('img')
+                img.src = data.image
+                img.style.maxWidth = '128px'
+                img.style.maxHeight = '128px'
+                img.style.padding = '10px'
+                infoDiv.appendChild(img)
+            })
             // Upload Button
             var uploadButton = document.createElement('input')
             uploadButton.type = 'file'
             uploadButton.capture = 'camera'
             uploadButton.accept = 'image/*'
-            infowindow.setContent(uploadButton)
+            infoDiv.appendChild(uploadButton)
             uploadButton.onchange = function(){
             var r = new XMLHttpRequest()
-                r.open('POST', '/upload/' + marker.id + '/', true);
+                r.open('POST', '/upload/' + marker.data.id + '/', true);
                 r.setRequestHeader('X-CSRFToken', document.cookie.match('csrftoken=([a-zA-Z0-9]{32})')[1])
+                r.setRequestHeader('Filename', this.files[0].name)
                 r.send(this.files[0])
                 r.onload = function(){
-                    alert('it worked! (i promise)')
+                    data = JSON.parse(r.responseText)
+                    marker.data.images.push(data)
+                    var img  = document.createElement('img')
+                    img.src = data.image
+                    img.style.maxWidth = '128px'
+                    img.style.maxHeight = '128px'
+                    img.style.padding = '10px'
+                    infoDiv.appendChild(img)
                 }
                 this.value = ''
             }
